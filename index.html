@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Glow & Fit Tracker</title>
+<style>
+:root {
+--bg-gradient: linear-gradient(135deg, #ffe5ec 0%, #f0e6ff 100%);
+--card-bg: #ffffff;
+--primary-pink: #ff8fab;
+--primary-lila: #d6bbfd;
+--lila-dark: #9b6bf3;
+--text-main: #4a3e4d;
+--text-muted: #8e8393;
+--day-neutral: #f7f5f8;
+--day-success: #cbf3d2;
+--day-fail: #ffd4db;
+--day-rest: #ebe9ed;
+--shadow-soft: opacity 0.3s, transform 0.2s;
+--box-shadow: 0 10px 30px rgba(255, 143, 171, 0.15);
+}
+
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+-webkit-tap-highlight-color: transparent;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+background: var(--bg-gradient);
+background-attachment: fixed;
+min-height: 100vh;
+display: flex;
+justify-content: center;
+align-items: flex-start;
+color: var(--text-main);
+padding: 20px 10px padding-bottom: calc(20px + env(safe-area-inset-bottom));
+overflow-x: hidden;
+}
+
+/* Contenedor Principal Estilo iPhone Pro Max */
+.app-container {
+width: 100%;
+max-width: 430px;
+background: var(--card-bg);
+border-radius: 35px;
+box-shadow: var(--box-shadow);
+padding: 24px;
+display: flex;
+flex-direction: column;
+gap: 24px;
+animation: fadeIn 0.5s ease-out;
+overflow: hidden;
+}
+
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(10px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+/* Encabezado Premium */
+.app-header {
+text-align: center;
+margin-bottom: 4px;
+}
+
+.app-header h1 {
+font-size: 24px;
+font-weight: 700;
+letter-spacing: -0.5px;
+background: linear-gradient(90deg, #ff758f, #9b6bf3);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+margin-bottom: 4px;
+}
+
+.app-header p {
+font-size: 13px;
+color: var(--text-muted);
+font-weight: 500;
+}
+
+/* Navegación del Calendario */
+.calendar-nav {
+display: flex;
+justify-content: space-between;
+align-items: center;
+background: var(--day-neutral);
+border-radius: 20px;
+padding: 6px 8px;
+}
+
+.nav-btn {
+background: transparent;
+border: none;
+width: 38px;
+height: 38px;
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 16px;
+cursor: pointer;
+color: var(--text-main);
+transition: all 0.2s;
+}
+
+.nav-btn:active {
+background: rgba(0,0,0,0.05);
+transform: scale(0.9);
+}
+
+.nav-btn:disabled {
+opacity: 0.2;
+pointer-events: none;
+}
+
+.current-month-year {
+font-size: 16px;
+font-weight: 600;
+color: var(--text-main);
+}
+
+/* Grid del Calendario */
+.calendar-grid {
+display: grid;
+grid-template-columns: repeat(7, 1fr);
+gap: 8px;
+justify-items: center;
+}
+
+.weekday-label {
+font-size: 11px;
+font-weight: 700;
+color: var(--text-muted);
+text-transform: uppercase;
+text-align: center;
+width: 100%;
+margin-bottom: 4px;
+}
+
+.day-cell {
+width: 100%;
+aspect-ratio: 1 / 1;
+max-width: 48px;
+max-height: 48px;
+border-radius: 14px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+font-size: 14px;
+font-weight: 600;
+position: relative;
+cursor: pointer;
+transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+user-select: none;
+}
+
+.day-cell:active {
+transform: scale(0.92);
+}
+
+.day-cell .indicator {
+font-size: 10px;
+position: absolute;
+bottom: 2px;
+}
+
+/* Estados de los días */
+.day-empty {
+pointer-events: none;
+opacity: 0;
+}
+
+.day-neutral {
+background-color: var(--day-neutral);
+color: var(--text-main);
+}
+
+.day-success {
+background-color: var(--day-success);
+color: #225a2b;
+}
+
+.day-fail {
+background-color: var(--day-fail);
+color: #721c24;
+}
+
+.day-rest {
+background-color: var(--day-rest);
+color: #7d7880;
+pointer-events: none;
+}
+
+.day-today {
+border: 2px solid var(--lila-dark);
+box-shadow: 0 0 8px rgba(155, 107, 243, 0.3);
+}
+
+/* Tarjeta de Estadísticas */
+.stats-card {
+background: linear-gradient(180deg, #fdfbfe 0%, #f6f0fa 100%);
+border: 1px solid rgba(255,255,255,0.6);
+border-radius: 24px;
+padding: 18px;
+display: flex;
+flex-direction: column;
+gap: 14px;
+}
+
+.stats-title {
+font-size: 14px;
+font-weight: 700;
+color: var(--text-muted);
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+
+.stats-grid {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 12px;
+}
+
+.stat-item {
+background: var(--card-bg);
+padding: 12px;
+border-radius: 16px;
+display: flex;
+flex-direction: column;
+gap: 4px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.stat-item.full-width {
+grid-column: span 2;
+flex-direction: row;
+justify-content: space-between;
+align-items: center;
+background: linear-gradient(90deg, #fff5f7, #f3eefc);
+}
+
+.stat-label {
+font-size: 12px;
+color: var(--text-muted);
+font-weight: 500;
+}
+
+.stat-value {
+font-size: 18px;
+font-weight: 700;
+color: var(--text-main);
+}
+
+/* Botones de Utilidad */
+.utils-grid {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 10px;
+}
+
+.btn-util {
+background: var(--day-neutral);
+border: none;
+padding: 12px;
+border-radius: 14px;
+font-size: 12px;
+font-weight: 600;
+color: var(--text-main);
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 6px;
+transition: background 0.2s;
+}
+
+.btn-util:active {
+background: #ebe6ee;
+}
+
+.btn-reset {
+grid-column: span 2;
+background: #fff0f2;
+color: #d93856;
+}
+
+.btn-reset:active {
+background: #ffe0e4;
+}
+
+/* Modal Capa de Fondo */
+.modal-overlay {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(74, 62, 77, 0.4);
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+display: flex;
+justify-content: center;
+align-items: flex-end;
+z-index: 999;
+opacity: 0;
+pointer-events: none;
+transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+opacity: 1;
+pointer-events: auto;
+}
+
+/* Contenedor Modal estilo iOS Action Sheet */
+.modal-container {
+width: 100%;
+max-width: 430px;
+background: var(--card-bg);
+border-radius: 30px 30px 0 0;
+padding: 24px 24px calc(24px + env(safe-area-inset-bottom)) 24px;
+transform: translateY(100%);
+transition: transform 0.3s cubic-bezier(0.15, 1, 0.3, 1);
+max-height: 90vh;
+overflow-y: auto;
+}
+
+.modal-overlay.active .modal-container {
+transform: translateY(0);
+}
+
+.modal-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 20px;
+}
+
+.modal-title h2 {
+font-size: 19px;
+font-weight: 700;
+color: var(--text-main);
+}
+
+.modal-title p {
+font-size: 12px;
+color: var(--text-muted);
+margin-top: 2px;
+}
+
+.close-btn {
+background: var(--day-neutral);
+border: none;
+width: 32px;
+height: 32px;
+border-radius: 50%;
+font-size: 14px;
+font-weight: 700;
+color: var(--text-muted);
+cursor: pointer;
+}
+
+.section-label {
+font-size: 13px;
+font-weight: 700;
+color: var(--text-muted);
+text-transform: uppercase;
+margin-bottom: 10px;
+letter-spacing: 0.3px;
+}
+
+/* Grid de Selección de Hábitos */
+.habits-grid {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 10px;
+margin-bottom: 20px;
+}
+
+.habit-btn {
+background: var(--day-neutral);
+border: 2px solid transparent;
+padding: 14px 10px;
+border-radius: 16px;
+font-size: 14px;
+font-weight: 600;
+color: var(--text-main);
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.habit-btn:active {
+transform: scale(0.95);
+}
+
+.habit-btn.selected {
+background: #fff0f5;
+border-color: var(--primary-pink);
+transform: scale(1.02);
+}
+
+.habit-btn.selected.btn-fail-option {
+background: #fff0f2;
+border-color: #ff758f;
+}
+
+.habit-btn:disabled {
+opacity: 0.4;
+pointer-events: none;
+transform: scale(1) !important;
+}
+
+.habit-btn.btn-fail-option {
+grid-column: span 2;
+background: #fff3f5;
+color: #d93856;
+}
+
+/* Área de Texto */
+.notes-container {
+margin-bottom: 24px;
+}
+
+.notes-textarea {
+width: 100%;
+height: 90px;
+background: var(--day-neutral);
+border: 2px solid transparent;
+border-radius: 16px;
+padding: 12px;
+font-size: 14px;
+color: var(--text-main);
+resize: none;
+outline: none;
+transition: border 0.2s;
+}
+
+.notes-textarea:focus {
+border-color: var(--primary-lila);
+background: var(--card-bg);
+}
+
+/* Acciones del Modal */
+.modal-actions {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 12px;
+}
+
+.btn-action {
+padding: 16px;
+border-radius: 16px;
+font-size: 15px;
+font-weight: 600;
+cursor: pointer;
+border: none;
+text-align: center;
+transition: background 0.2s;
+}
+
+.btn-cancel {
+background: var(--day-neutral);
+color: var(--text-main);
+}
+
+.btn-save {
+background: linear-gradient(90deg, #ff8fab, #9b6bf3);
+color: white;
+box-shadow: 0 4px 15px rgba(255, 143, 171, 0.3);
+}
+
+.btn-save:active {
+opacity: 0.9;
+}
+
+/* Ocultar input file */
+#importFile {
+display: none;
+}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+<header class="app-header">
+<h1>Glow & Fit</h1>
+<p>Rutina, Bienestar y Balance</p>
+</header>
+
+<div class="calendar-nav">
+<button class="nav-btn" id="prevMonthBtn">←</button>
+<span class="current-month-year" id="currentMonthYear">Junio 2026</span>
+<button class="nav-btn" id="nextMonthBtn">→</button>
+</div>
+
+<div class="calendar-wrapper">
+<div class="calendar-grid" id="weekdayLabels">
+<div class="weekday-label">Lu</div>
+<div class="weekday-label">Ma</div>
+<div class="weekday-label">Mi</div>
+<div class="weekday-label">Ju</div>
+<div class="weekday-label">Vi</div>
+<div class="weekday-label">Sá</div>
+<div class="weekday-label">Do</div>
+</div>
+<div class="calendar-grid" id="calendarDays" style="margin-top: 8px;">
+</div>
+</div>
+
+<section class="stats-card">
+<div class="stats-title">Estadísticas en tiempo real</div>
+<div class="stats-grid">
+<div class="stat-item">
+<span class="stat-label">🔥 Días cumplidos</span>
+<span class="stat-value" id="statComplied">0</span>
+</div>
+<div class="stat-item">
+<span class="stat-label">❌ Días fallados</span>
+<span class="stat-value" id="statFailed">0</span>
+</div>
+<div class="stat-item full-width">
+<span class="stat-label">📈 Cumplimiento</span>
+<span class="stat-value" id="statRatio">0%</span>
+</div>
+<div class="stat-item">
+<span class="stat-label">⚡ Racha actual</span>
+<span class="stat-value" id="statStreak">0</span>
+</div>
+<div class="stat-item">
+<span class="stat-label">🏆 Mejor racha</span>
+<span class="stat-value" id="statBestStreak">0</span>
+</div>
+</div>
+</section>
+
+<section class="utils-grid">
+<button class="btn-util" id="exportBtn">📤 Exportar progreso</button>
+<button class="btn-util" onclick="document.getElementById('importFile').click()">📥 Importar progreso</button>
+<input type="file" id="importFile" accept=".json">
+<button class="btn-util btn-reset" id="resetBtn">🗑️ Reiniciar todo el progreso</button>
+</section>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+<div class="modal-container">
+<div class="modal-header">
+<div class="modal-title">
+<h2>Día seleccionado</h2>
+<p id="modalFullDate">Lunes, 1 de Junio de 2026</p>
+</div>
+<button class="close-btn" id="closeModalBtn">✕</button>
+</div>
+
+<div class="section-label">Hábitos cumplidos</div>
+<div class="habits-grid">
+<button class="habit-btn" data-habit="gym">💪 Gym</button>
+<button class="habit-btn" data-habit="skincare">🫧 Skincare</button>
+<button class="habit-btn" data-habit="study">📚 Estudié</button>
+<button class="habit-btn" data-habit="healthy">🩷 Comí sano</button>
+<button class="habit-btn" data-habit="sleep">💤 Dormí bien</button>
+<button class="habit-btn" data-habit="water">💧 Tomé agua</button>
+<button class="habit-btn btn-fail-option" data-habit="fail">❌ No cumplí</button>
+</div>
+
+<div class="notes-container">
+<div class="section-label">¿Qué hiciste hoy? (Ejercicio)</div>
+<textarea class="notes-textarea" id="dayNotes" placeholder="Ej: Pierna, Cardio, Espalda y hombro..."></textarea>
+</div>
+
+<div class="modal-actions">
+<button class="btn-action btn-cancel" id="cancelModalBtn">Cancelar</button>
+<button class="btn-action btn-save" id="saveModalBtn">Guardar</button>
+</div>
+</div>
+</div>
+
+<script>
+// Configuración de Fechas Límite (Junio 2026 - Diciembre 2026)
+const START_YEAR = 2026, START_MONTH = 5; // Junio (0-indexed)
+const END_YEAR = 2026, END_MONTH = 11; // Diciembre (0-indexed)
+
+const MONTH_NAMES = [
+"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+"Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
+
+const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+// Estado global de la aplicación
+let currentYear = START_YEAR;
+let currentMonth = START_MONTH;
+let selectedDayKey = null; // Guardado con formato YYYY-MM-DD
+
+// Estructura de Datos principal en localStorage
+let appData = {
+days: {}, // Estructura: {"2026-05-01": { habits: [], notes: "" }}
+currentView: { year: START_YEAR, month: START_MONTH }
+};
+
+// Inicialización e hidratación desde localStorage
+function init() {
+const savedData = localStorage.getItem("glowFitTrackerData");
+if (savedData) {
+try {
+appData = JSON.parse(savedData);
+if (!appData.days) appData.days = {};
+if (appData.currentView) {
+currentYear = appData.currentView.year || START_YEAR;
+currentMonth = appData.currentView.month !== undefined ? appData.currentView.month : START_MONTH;
+}
+} catch(e) {
+console.error("Error cargando localStorage", e);
+}
+}
+renderCalendar();
+calculateStats();
+setupEventListeners();
+}
+
+function saveData() {
+appData.currentView = { year: currentYear, month: currentMonth };
+localStorage.setItem("glowFitTrackerData", JSON.stringify(appData));
+calculateStats();
+}
+
+// Renderizado del Calendario Seguro y Alineado
+function renderCalendar() {
+const monthYearLabel = document.getElementById("currentMonthYear");
+const calendarDaysContainer = document.getElementById("calendarDays");
+
+monthYearLabel.textContent = `${MONTH_NAMES[currentMonth]} ${currentYear}`;
+calendarDaysContainer.innerHTML = "";
+
+// Botones de navegación límites
+document.getElementById("prevMonthBtn").disabled = (currentYear === START_YEAR && currentMonth === START_MONTH);
+document.getElementById("nextMonthBtn").disabled = (currentYear === END_YEAR && currentMonth === END_MONTH);
+
+// Primer día del mes y total de días
+const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+// Ajuste para que la semana empiece en Lunes (0: Lu, 6: Do)
+let blanks = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+// Renderizar espacios vacíos iniciales
+for (let i = 0; i < blanks; i++) {
+const blankDiv = document.createElement("div");
+blankDiv.className = "day-cell day-empty";
+calendarDaysContainer.appendChild(blankDiv);
+}
+
+// Obtener fecha actual para marcar el borde del día de hoy
+const today = new Date();
+const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+// Renderizar días válidos del mes
+for (let day = 1; day <= totalDays; day++) {
+const dayDiv = document.createElement("div");
+dayDiv.className = "day-cell";
+
+const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+const dateObj = new Date(currentYear, currentMonth, day);
+const dayOfWeek = dateObj.getDay(); // 0 = Domingo, 6 = Sábado
+const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+dayDiv.textContent = day;
+
+// Identificador de día actual
+if (dateStr === todayStr) {
+dayDiv.classList.add("day-today");
+}
+
+// Lógica visual basada en configuración (Laboral / Descanso)
+if (isWeekend) {
+dayDiv.classList.add("day-rest");
+const indicator = document.createElement("span");
+indicator.className = "indicator";
+indicator.textContent = "🔱";
+dayDiv.appendChild(indicator);
+} else {
+dayDiv.classList.add("day-neutral");
+dayDiv.addEventListener("click", () => openModal(dateStr, dateObj));
+
+// Pintar según almacenamiento de hábitos registrados
+if (appData.days[dateStr]) {
+const dayRecord = appData.days[dateStr];
+if (dayRecord.habits && dayRecord.habits.includes("fail")) {
+dayDiv.className = "day-cell day-fail";
+if (dateStr === todayStr) dayDiv.classList.add("day-today");
+const indicator = document.createElement("span");
+indicator.className = "indicator";
+indicator.textContent = "✖️";
+dayDiv.appendChild(indicator);
+} else if (dayRecord.habits && dayRecord.habits.length > 0) {
+dayDiv.className = "day-cell day-success";
+if (dateStr === todayStr) dayDiv.classList.add("day-today");
+const indicator = document.createElement("span");
+indicator.className = "indicator";
+indicator.textContent = "💪🏼";
+dayDiv.appendChild(indicator);
+}
+}
+}
+calendarDaysContainer.appendChild(dayDiv);
+}
+}
+
+// Lógica Avanzada de Negocio del Modal
+const modalOverlay = document.getElementById("modalOverlay");
+const habitButtons = document.querySelectorAll(".habit-btn");
+const dayNotes = document.getElementById("dayNotes");
+
+function openModal(dateStr, dateObj) {
+selectedDayKey = dateStr;
+
+// Formatear cabecera modal de forma legible y elegante
+const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+document.getElementById("modalFullDate").textContent = dateObj.toLocaleDateString('es-ES', options);
+
+// Limpiar campos e hidratar datos existentes si existen
+habitButtons.forEach(btn => btn.classList.remove("selected", "disabled"));
+habitButtons.forEach(btn => btn.removeAttribute("disabled"));
+dayNotes.value = "";
+
+if (appData.days[selectedDayKey]) {
+const record = appData.days[selectedDayKey];
+dayNotes.value = record.notes || "";
+
+if (record.habits) {
+record.habits.forEach(h => {
+const btn = document.querySelector(`.habit-btn[data-habit="${h}"]`);
+if (btn) btn.classList.add("selected");
+});
+
+if (record.habits.includes("fail")) {
+applyFailStateRules(true);
+}
+}
+}
+
+modalOverlay.classList.add("active");
+}
+
+function closeModal() {
+modalOverlay.classList.remove("active");
+selectedDayKey = null;
+}
+
+// Regla especial del botón "No cumplí"
+function applyFailStateRules(isFailSelected) {
+habitButtons.forEach(btn => {
+if (btn.getAttribute("data-habit") !== "fail") {
+if (isFailSelected) {
+btn.classList.remove("selected");
+btn.classList.add("disabled");
+btn.setAttribute("disabled", "true");
+} else {
+btn.classList.remove("disabled");
+btn.removeAttribute("disabled");
+}
+}
+});
+}
+
+// Manejo de clicks internos del Modal (Hábitos)
+habitButtons.forEach(btn => {
+btn.addEventListener("click", () => {
+const habitType = btn.getAttribute("data-habit");
+
+if (habitType === "fail") {
+btn.classList.toggle("selected");
+const isActive = btn.classList.contains("selected");
+applyFailStateRules(isActive);
+} else {
+btn.classList.toggle("selected");
+}
+});
+});
+
+// Guardado persistente del día seleccionado
+document.getElementById("saveModalBtn").addEventListener("click", () => {
+if (!selectedDayKey) return;
+
+const selectedHabits = [];
+habitButtons.forEach(btn => {
+if (btn.classList.contains("selected")) {
+selectedHabits.push(btn.getAttribute("data-habit"));
+}
+});
+
+// Si no tiene nada seleccionado y las notas están vacías, eliminamos registro limpio
+if (selectedHabits.length === 0 && dayNotes.value.trim() === "") {
+delete appData.days[selectedDayKey];
+} else {
+appData.days[selectedDayKey] = {
+habits: selectedHabits,
+notes: dayNotes.value.trim()
+};
+}
+
+saveData();
+renderCalendar();
+closeModal();
+});
+
+// Estadísticas Matemáticas y Lógica de Rachas Consecutivas Laborales
+function calculateStats() {
+let compliedDaysCount = 0;
+let failedDaysCount = 0;
+
+// Obtener todos los días laborales válidos ordenados en el rango permitido
+let allLaborDays = [];
+let startRange = new Date(START_YEAR, START_MONTH, 1);
+let endRange = new Date(END_YEAR, END_MONTH + 1, 0);
+
+for (let d = new Date(startRange); d <= endRange; d.setDate(d.getDate() + 1)) {
+let dayOfWeek = d.getDay();
+if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Excluir fines de semana
+let dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+allLaborDays.push(dStr);
+}
+}
+
+// Filtrar los días que tienen registros reales guardados
+let registeredLaborDays = allLaborDays.filter(dayKey => appData.days[dayKey] !== undefined);
+
+registeredLaborDays.forEach(dayKey => {
+let record = appData.days[dayKey];
+if (record.habits.includes("fail")) {
+failedDaysCount++;
+} else if (record.habits.length > 0) {
+compliedDaysCount++;
+}
+});
+
+// Renderizado contadores básicos
+document.getElementById("statComplied").textContent = compliedDaysCount;
+document.getElementById("statFailed").textContent = failedDaysCount;
+
+// Porcentaje entero de cumplimiento
+let ratio = 0;
+if (registeredLaborDays.length > 0) {
+ratio = Math.round((compliedDaysCount / registeredLaborDays.length) * 100);
+}
+document.getElementById("statRatio").textContent = `${ratio}%`;
+
+// Cálculo dinámico de Rachas (Actual e Histórica) sobre días laborales consecutivos
+let currentStreak = 0;
+let bestStreak = 0;
+let tempStreak = 0;
+
+allLaborDays.forEach(dayKey => {
+let record = appData.days[dayKey];
+// Se considera cumplido si existe y no tiene el tag "fail" y tiene al menos un hábito
+let isComplied = record && !record.habits.includes("fail") && record.habits.length > 0;
+
+if (isComplied) {
+tempStreak++;
+if (tempStreak > bestStreak) {
+bestStreak = tempStreak;
+}
+} else {
+// Si el día ya pasó o está registrado como fallido/vacío se rompe la racha temporal
+// Nota: para no romper la racha actual con días futuros, evaluamos hasta el día actual registrado
+tempStreak = 0;
+}
+});
+
+// Racha actual real (consecutivos hacia atrás desde el último registrado o hoy)
+// Para calcular la racha actual de forma precisa de cara al usuario:
+let computedCurrentStreak = 0;
+// Recorremos a la inversa los días laborales desde el final hasta encontrar el bloque activo
+let streakBroken = false;
+
+// Creamos un clon ordenado inverso de días laborales pasados/presentes que tengan transacciones
+for (let i = allLaborDays.length - 1; i >= 0; i--) {
+let dayKey = allLaborDays[i];
+let record = appData.days[dayKey];
+let isComplied = record && !record.habits.includes("fail") && record.habits.length > 0;
+
+if (isComplied && !streakBroken) {
+computedCurrentStreak++;
+} else if (record !== undefined) {
+// Si el usuario explícitamente interactuó y no cumplió o lo dejó vacío, rompe la racha actual
+streakBroken = true;
+}
+}
+
+// Si no hay datos registrados globales, la racha es 0
+if(registeredLaborDays.length === 0) computedCurrentStreak = 0;
+
+document.getElementById("statStreak").textContent = computedCurrentStreak;
+document.getElementById("statBestStreak").textContent = bestStreak;
+}
+
+// Navegación y Event Listeners
+function setupEventListeners() {
+document.getElementById("prevMonthBtn").addEventListener("click", () => {
+if (currentMonth === START_MONTH && currentYear === START_YEAR) return;
+if (currentMonth === 0) {
+currentMonth = 11;
+currentYear--;
+} else {
+currentMonth--;
+}
+renderCalendar();
+saveData();
+});
+
+document.getElementById("nextMonthBtn").addEventListener("click", () => {
+if (currentMonth === END_MONTH && currentYear === END_YEAR) return;
+if (currentMonth === 11) {
+currentMonth = 0;
+currentYear++;
+} else {
+currentMonth++;
+}
+renderCalendar();
+saveData();
+});
+
+// Elementos de cierre de modal
+document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+document.getElementById("cancelModalBtn").addEventListener("click", closeModal);
+
+// Exportar datos como JSON
+document.getElementById("exportBtn").addEventListener("click", () => {
+const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
+const downloadAnchor = document.createElement('a');
+downloadAnchor.setAttribute("href", dataStr);
+downloadAnchor.setAttribute("download", `glow_fit_backup_${new Date().toISOString().slice(0,10)}.json`);
+document.body.appendChild(downloadAnchor);
+downloadAnchor.click();
+downloadAnchor.remove();
+});
+
+// Importar datos desde JSON externo
+document.getElementById("importFile").addEventListener("change", (e) => {
+const fileReader = new FileReader();
+if (!e.target.files[0]) return;
+
+fileReader.onload = function(event) {
+try {
+const parsed = JSON.parse(event.target.result);
+if (parsed && typeof parsed === 'object') {
+appData = parsed;
+if(!appData.days) appData.days = {};
+currentYear = appData.currentView?.year || START_YEAR;
+currentMonth = appData.currentView?.month !== undefined ? appData.currentView.month : START_MONTH;
+saveData();
+renderCalendar();
+alert("¡Progreso restaurado correctamente! 💕");
+}
+} catch (error) {
+alert("Error: El archivo cargado no es un respaldo válido de Glow & Fit.");
+}
+};
+fileReader.readAsText(e.target.files[0]);
+});
+
+// Limpieza Completa con Confirmación Nativa
+document.getElementById("resetBtn").addEventListener("click", () => {
+const confirmClear = confirm("¿Estás seguro amor de que deseas reiniciar todo tu progreso? Esta acción eliminará permanentemente tus rachas, notas e historial.");
+if (confirmClear) {
+localStorage.removeItem("glowFitTrackerData");
+appData = { days: {}, currentView: { year: START_YEAR, month: START_MONTH } };
+currentYear = START_YEAR;
+currentMonth = START_MONTH;
+saveData();
+renderCalendar();
+}
+});
+}
+
+// Ejecutar app al cargar ventana
+window.onload = init;
+</script>
+</body>
+</html>
